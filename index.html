@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ku">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>R6 ULTIMATE TRACKER</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --r6-gold: #ffb400; --r6-blue: #0055ff; --bg: #050505; --card: #111; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; }
+        
+        .app-wrapper { width: 100%; max-width: 450px; padding: 15px; box-sizing: border-box; }
+        
+        /* Login Page */
+        #login-page { text-align: center; margin-top: 50px; }
+        .logo-box { font-size: 60px; color: var(--r6-gold); margin-bottom: 20px; }
+        .input-group { background: var(--card); border: 1px solid #333; border-radius: 15px; padding: 10px; margin-bottom: 20px; }
+        input { width: 100%; background: transparent; border: none; color: white; padding: 15px; font-size: 18px; text-align: center; outline: none; }
+        .btn-main { width: 100%; padding: 18px; background: var(--r6-gold); color: black; border: none; border-radius: 15px; font-weight: bold; font-size: 16px; cursor: pointer; text-transform: uppercase; }
+
+        /* Stats Dashboard */
+        #stats-page { display: none; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .profile-header { background: linear-gradient(45deg, #111, #222); padding: 25px; border-radius: 20px; border-bottom: 4px solid var(--r6-gold); margin-bottom: 20px; text-align: center; }
+        .profile-header h2 { margin: 0; font-size: 28px; color: var(--r6-gold); }
+
+        /* Grid System for Stats */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .stat-card { background: var(--card); padding: 15px; border-radius: 15px; border: 1px solid #222; position: relative; overflow: hidden; }
+        .stat-card i { position: absolute; right: 10px; top: 10px; color: rgba(255,180,0,0.1); font-size: 30px; }
+        .label { color: #777; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 5px; }
+        .value { font-size: 20px; font-weight: bold; color: #fff; }
+        .gold-text { color: var(--r6-gold); }
+
+        .full-width { grid-column: span 2; }
+        
+        #loader { display: none; color: var(--r6-gold); margin: 20px 0; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="app-wrapper">
+        <div id="login-page">
+            <div class="logo-box"><i class="fas fa-shield-halved"></i></div>
+            <h1 style="letter-spacing: 4px;">R6 TRACKER PRO</h1>
+            <div class="input-group">
+                <input type="text" id="username" placeholder="UBISOFT ID..." autocomplete="off">
+            </div>
+            <button class="btn-main" onclick="fetchFullStats()">گەڕان و نمایشکردن</button>
+            <div id="loader"><i class="fas fa-sync fa-spin"></i> خەریکی هێنانی زانیارییەکانم...</div>
+        </div>
+
+        <div id="stats-page">
+            <div class="profile-header">
+                <h2 id="p-name">---</h2>
+                <span id="p-rank" style="color: #888; letter-spacing: 2px;">RANKED OPERATOR</span>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card full-width">
+                    <span class="label">Current Match Rank</span>
+                    <span class="value gold-text" id="val-rank">Unranked</span>
+                    <i class="fas fa-trophy"></i>
+                </div>
+
+                <div class="stat-card">
+                    <span class="label">Level</span>
+                    <span class="value" id="val-lvl">0</span>
+                    <i class="fas fa-medal"></i>
+                </div>
+                <div class="stat-card">
+                    <span class="label">K/D Ratio</span>
+                    <span class="value" id="val-kd">0.00</span>
+                    <i class="fas fa-skull"></i>
+                </div>
+                <div class="stat-card">
+                    <span class="label">Win Rate</span>
+                    <span class="value" id="val-wr">0%</span>
+                    <i class="fas fa-percent"></i>
+                </div>
+                <div class="stat-card">
+                    <span class="label">Total Wins</span>
+                    <span class="value" id="val-wins">0</span>
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                
+                <div class="stat-card">
+                    <span class="label">Total Kills</span>
+                    <span class="value" id="val-kills">0</span>
+                    <i class="fas fa-gun"></i>
+                </div>
+                <div class="stat-card">
+                    <span class="label">Total Deaths</span>
+                    <span class="value" id="val-deaths">0</span>
+                    <i class="fas fa-ghost"></i>
+                </div>
+                <div class="stat-card">
+                    <span class="label">Headshots</span>
+                    <span class="value" id="val-hs">0</span>
+                    <i class="fas fa-crosshairs"></i>
+                </div>
+                <div class="stat-card">
+                    <span class="label">Melee Kills</span>
+                    <span class="value" id="val-melee">0</span>
+                    <i class="fas fa-knife"></i>
+                </div>
+            </div>
+
+            <button class="btn-main" style="margin-top: 25px; background: #222; color: #fff;" onclick="window.location.reload()">گەڕانەوە بۆ مینیو</button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        async function fetchFullStats() {
+            const user = document.getElementById('username').value;
+            if(!user) return;
+
+            document.getElementById('loader').style.display = 'block';
+
+            try {
+                // تێبینی: دەبێت سێرڤەرەکەت هەموو ئەم داتایانە بنێرێت لە یەک JSON دا
+                const response = await fetch(`http://217.154.212.66:12063/api/get?u=${user}&p=pc`);
+                const data = await response.json();
+
+                // دابەشکردنی داتاکان بۆ سەر خانەکان
+                document.getElementById('p-name').innerText = user.toUpperCase();
+                document.getElementById('val-lvl').innerText = data.level || "0";
+                document.getElementById('val-kd').innerText = data.kd || "0.00";
+                document.getElementById('val-wr').innerText = data.winRate || "0%";
+                document.getElementById('val-rank').innerText = data.rank || "Unknown";
+                document.getElementById('val-wins').innerText = data.totalWins || "0";
+                document.getElementById('val-kills').innerText = data.totalKills || "0";
+                document.getElementById('val-deaths').innerText = data.totalDeaths || "0";
+                document.getElementById('val-hs').innerText = data.headshots || "0";
+                document.getElementById('val-melee').innerText = data.meleeKills || "0";
+
+                document.getElementById('login-page').style.display = 'none';
+                document.getElementById('stats-page').style.display = 'block';
+                
+                if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+            } catch (error) {
+                alert("کێشە دروست بو بۆ ئەپەکە ، نامە بنێرە بۆ بەرێز ئەنەس تاوەکو چاکی کات");
+                document.getElementById('loader').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
